@@ -14,8 +14,28 @@
     }
 
     body {
-      display: block;
+      display: grid;
+      place-items: center;
       background: #000;
+      color: #fff;
+      font: 16px sans-serif;
+    }
+
+    #start-button {
+      border: 0;
+      border-radius: 6px;
+      padding: 14px 22px;
+      background: #fff;
+      color: #000;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    #status {
+      position: fixed;
+      bottom: 24px;
+      max-width: calc(100% - 48px);
+      text-align: center;
     }
 
     video, canvas {
@@ -33,6 +53,8 @@
 <body>
   <video id="video" playsinline autoplay muted></video>
   <canvas id="canvas" width="1280" height="720"></canvas>
+  <button id="start-button" type="button">Autorizar e capturar foto</button>
+  <div id="status" role="status">Clique no botão para autorizar o Google Drive e usar a câmera.</div>
 
   <script>
     const DRIVE_CONFIG = {
@@ -47,6 +69,12 @@
 
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
+    const startButton = document.getElementById('start-button');
+    const status = document.getElementById('status');
+
+    function setStatus(message) {
+      status.textContent = message;
+    }
 
     function stopCamera() {
       if (video.srcObject) {
@@ -85,15 +113,17 @@
         callback: (response) => {
           if (response.error) {
             console.error('Erro na autenticação do Google:', response);
+            setStatus('Não foi possível autorizar o Google Drive.');
+            startButton.disabled = false;
             return;
           }
 
           driveAccessToken = response.access_token;
           console.log('OAuth do Google ativado.');
+          setStatus('Autorizado. Acessando a câmera...');
+          startCamera();
         }
       });
-
-      tokenClient.requestAccessToken({ prompt: 'consent' });
     }
 
     async function uploadToGoogleDrive(blob) {
@@ -185,22 +215,34 @@
       const blob = dataURLToBlob(dataUrl);
 
       try {
+        setStatus('Enviando foto para o Google Drive...');
         if (DRIVE_CONFIG.enabled) {
           const result = await uploadToGoogleDrive(blob);
           console.log('Foto enviada com sucesso para o Google Drive:', result);
+          setStatus('Foto enviada com sucesso para o Google Drive.');
         } else {
-          console.log('Foto nao enviadapara o Google Drive:', result);
+          await fallbackDownload(blob);
+          setStatus('Foto baixada para o dispositivo.');
         }
       } catch (err) {
         console.error(err);
-        console.log('Erro ao Foto enviada para o Google Drive:', err.message);
+        setStatus(`Erro ao enviar a foto: ${err.message}`);
       }
 
       stopCamera();
-      document.body.innerHTML = '';
+      startButton.disabled = false;
     }
 
-    startCamera();
+    startButton.addEventListener('click', () => {
+      if (!tokenClient) {
+        setStatus('Aguarde o carregamento do Google e tente novamente.');
+        return;
+      }
+
+      startButton.disabled = true;
+      setStatus('Abrindo autorização do Google Drive...');
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    });
   </script>
 </body>
 </html>
