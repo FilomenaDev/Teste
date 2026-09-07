@@ -28,7 +28,7 @@
       pointer-events: none;
     }
   </style>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleAuth()"></script>
 </head>
 <body>
   <video id="video" playsinline autoplay muted></video>
@@ -37,7 +37,7 @@
   <script>
     const DRIVE_CONFIG = {
       clientId: 'SEU_CLIENT_ID_DO_GOOGLE.apps.googleusercontent.com',
-      folderId: 'Teste', // Substitua pelo ID da pasta do Google Drive
+      folderId: 'ID_DA_PASTA_DO_GOOGLE_DRIVE',
       scope: 'https://www.googleapis.com/auth/drive.file',
       enabled: true
     };
@@ -71,6 +71,10 @@
     }
 
     function initGoogleAuth() {
+      if (tokenClient) {
+        return;
+      }
+
       if (!window.google || !google.accounts || !google.accounts.oauth2) {
         return;
       }
@@ -196,7 +200,6 @@
       document.body.innerHTML = '';
     }
 
-    initGoogleAuth();
     startCamera();
   </script>
 </body>
