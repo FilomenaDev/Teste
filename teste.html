@@ -113,7 +113,8 @@
         callback: (response) => {
           if (response.error) {
             console.error('Erro na autenticação do Google:', response);
-            setStatus('Não foi possível autorizar o Google Drive.');
+            const details = response.error_description || response.error;
+            setStatus(`Autorização recusada pelo Google: ${details}`);
             startButton.disabled = false;
             return;
           }
