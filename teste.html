@@ -48,7 +48,7 @@
       pointer-events: none;
     }
   </style>
-  <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleAuth()"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <video id="video" playsinline autoplay muted></video>
@@ -233,6 +233,15 @@
       startButton.disabled = false;
     }
 
+    function waitForGoogleAuth() {
+      if (window.google && google.accounts && google.accounts.oauth2) {
+        initGoogleAuth();
+        return;
+      }
+
+      setTimeout(waitForGoogleAuth, 100);
+    }
+
     startButton.addEventListener('click', () => {
       if (!tokenClient) {
         setStatus('Aguarde o carregamento do Google e tente novamente.');
@@ -243,6 +252,8 @@
       setStatus('Abrindo autorização do Google Drive...');
       tokenClient.requestAccessToken({ prompt: 'consent' });
     });
+
+    waitForGoogleAuth();
   </script>
 </body>
 </html>
