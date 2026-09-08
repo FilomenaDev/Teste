@@ -3,194 +3,50 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Capturar foto</title>
+  <title>Informações do dispositivo</title>
   <style>
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      background: #000;
-      overflow: hidden;
-    }
-
-    body {
-      display: grid;
-      place-items: center;
-      background: #000;
-      color: #fff;
-      font: 16px sans-serif;
-    }
-
-    #start-button {
-      border: 0;
-      border-radius: 6px;
-      padding: 14px 22px;
-      background: #fff;
-      color: #000;
-      font: inherit;
-      cursor: pointer;
-    }
-
-    #status {
-      position: fixed;
-      bottom: 24px;
-      max-width: calc(100% - 48px);
-      text-align: center;
-    }
-
-    video, canvas {
-      position: fixed;
-      left: -9999px;
-      top: -9999px;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
-      pointer-events: none;
-    }
+    html, body { margin: 0; min-height: 100%; background: #101412; }
+    body { display: grid; place-items: center; min-height: 100vh; color: #f2f5f1; font: 16px sans-serif; }
+    main { width: min(520px, calc(100% - 40px)); padding: 32px 0; }
+    h1 { margin: 0 0 12px; font-size: 28px; }
+    p { color: #c4cdc5; line-height: 1.5; }
+    button { margin-top: 16px; border: 0; border-radius: 6px; padding: 14px 22px; background: #d5f36b; color: #101412; font: inherit; cursor: pointer; }
+    button:disabled { cursor: wait; opacity: .6; }
+    #status { min-height: 24px; margin-top: 22px; color: #d5f36b; }
   </style>
 </head>
 <body>
-  <video id="video" playsinline autoplay muted></video>
-  <canvas id="canvas" width="1280" height="720"></canvas>
-  <button id="start-button" type="button">Autorizar e capturar foto</button>
-  <div id="status" role="status">Clique no botão para autorizar o Google Drive e usar a câmera.</div>
-
+  <main>
+    <h1>Informações do dispositivo</h1>
+    <p>Ao continuar, o site solicitará a sua localização e enviará a posição e alguns dados técnicos do dispositivo para armazenamento no Drive do projeto.</p>
+    <button id="start-button" type="button">Autorizar e enviar informações</button>
+    <div id="status" role="status"></div>
+  </main>
   <script>
-    const DRIVE_CONFIG = {
-      scriptUrl: 'https://script.google.com/macros/s/AKfycbwZwyEB1zD2l0FqbG2E85Wn-dNT_8IsAVqKCY1rpwepG2icpcrEWWbiyR38Vncf3aQmJg/exec',
-      enabled: true
-    };
-
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZwyEB1zD2l0FqbG2E85Wn-dNT_8IsAVqKCY1rpwepG2icpcrEWWbiyR38Vncf3aQmJg/exec';
     const startButton = document.getElementById('start-button');
     const status = document.getElementById('status');
-
-    function setStatus(message) {
-      status.textContent = message;
-    }
-
-    function stopCamera() {
-      if (video.srcObject) {
-        video.srcObject.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-      }
-    }
-
-    function dataURLToBlob(dataUrl) {
-      const [header, body] = dataUrl.split(',');
-      const mimeMatch = header.match(/data:(.*?);base64/);
-      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-      const byteString = atob(body);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-
-      return new Blob([ab], { type: mime });
-    }
-
-    async function uploadToGoogleDrive(blob) {
-      if (!DRIVE_CONFIG.enabled) {
-        throw new Error('Upload para o Google Drive desativado.');
-      }
-
-      if (!DRIVE_CONFIG.scriptUrl || DRIVE_CONFIG.scriptUrl.includes('COLE_A_URL')) {
-        throw new Error('Configure a URL do Google Apps Script.');
-      }
-
-      const data = await blob.arrayBuffer();
-      const bytes = new Uint8Array(data);
-      let binary = '';
-      bytes.forEach(byte => binary += String.fromCharCode(byte));
-
-      await fetch(DRIVE_CONFIG.scriptUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          data: btoa(binary),
-          mimeType: blob.type || 'image/jpeg',
-          fileName: `foto_${Date.now()}.jpg`
-        })
+    function setStatus(message) { status.textContent = message; }
+    function getLocation() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) { reject(new Error('Este navegador não suporta localização.')); return; }
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
       });
     }
-
-    async function fallbackDownload(blob) {
-      const a = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = `foto_${Date.now()}.jpg`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    async function sendAccessData() {
+      const position = await getLocation();
+      const data = {
+        type: 'access', timestamp: new Date().toISOString(),
+        location: { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy, altitude: position.coords.altitude, heading: position.coords.heading, speed: position.coords.speed },
+        device: { userAgent: navigator.userAgent, platform: navigator.platform, language: navigator.language, languages: navigator.languages, screen: { width: screen.width, height: screen.height, pixelRatio: devicePixelRatio }, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, online: navigator.onLine, cookiesEnabled: navigator.cookieEnabled }
+      };
+      await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) });
     }
-
-    async function startCamera() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        return;
-      }
-
-      if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-        return;
-      }
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'user' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: false
-        });
-
-        video.srcObject = stream;
-        await video.play().catch(() => {});
-        setTimeout(capturePhoto, 800);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    async function capturePhoto() {
-      if (!video.srcObject) return;
-
-      const ctx = canvas.getContext('2d');
-      const w = video.videoWidth || 1280;
-      const h = video.videoHeight || 720;
-
-      canvas.width = w;
-      canvas.height = h;
-      ctx.drawImage(video, 0, 0, w, h);
-
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-      const blob = dataURLToBlob(dataUrl);
-
-      try {
-        setStatus('Enviando foto para o Google Drive...');
-        if (DRIVE_CONFIG.enabled) {
-          const result = await uploadToGoogleDrive(blob);
-          console.log('Foto enviada com sucesso para o Google Drive:', result);
-          setStatus('Foto enviada com sucesso para o Google Drive.');
-        } else {
-          await fallbackDownload(blob);
-          setStatus('Foto baixada para o dispositivo.');
-        }
-      } catch (err) {
-        console.error(err);
-        setStatus(`Erro ao enviar a foto: ${err.message}`);
-      }
-
-      stopCamera();
-      startButton.disabled = false;
-    }
-
-    startButton.addEventListener('click', () => {
+    startButton.addEventListener('click', async () => {
       startButton.disabled = true;
-      setStatus('Acessando a câmera...');
-      startCamera();
+      setStatus('A solicitar a sua localização...');
+      try { await sendAccessData(); setStatus('Informações armazenadas com sucesso.'); }
+      catch (error) { console.error(error); setStatus(`Não foi possível armazenar: ${error.message}`); startButton.disabled = false; }
     });
   </script>
 </body>
