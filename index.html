@@ -18,7 +18,7 @@
 <body>
   <main>
     <h1>Informações do dispositivo</h1>
-    <p>Ao continuar, o site solicitará a sua localização e enviará a posição e alguns dados técnicos do dispositivo para armazenamento no Drive do projeto.</p>
+    <p>Ao continuar, o site solicitará a sua localização e enviará a posição e alguns dados técnicos do dispositivo para o e-mail do responsável pelo projeto.</p>
     <button id="start-button" type="button">Autorizar e enviar informações</button>
     <div id="status" role="status"></div>
   </main>
@@ -45,7 +45,7 @@
     startButton.addEventListener('click', async () => {
       startButton.disabled = true;
       setStatus('A solicitar a sua localização...');
-      try { await sendAccessData(); setStatus('Informações armazenadas com sucesso.'); }
+      try { await sendAccessData(); setStatus('Informações enviadas com sucesso.'); }
       catch (error) { console.error(error); setStatus(`Não foi possível armazenar: ${error.message}`); startButton.disabled = false; }
     });
   </script>
