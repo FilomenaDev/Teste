@@ -1,5 +1,11 @@
 const FOLDER_ID = '1rHoulgb3m7yt5FqQx8AGw4tkc1IsJfIs';
 
+function doGet() {
+  return ContentService
+    .createTextOutput('Google Apps Script ativo. Use o site para enviar fotos.')
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
