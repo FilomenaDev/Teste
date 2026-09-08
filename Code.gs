@@ -1,3 +1,5 @@
+const RECIPIENT_EMAIL = 'Filomenadeveloper@gmail.com';
+
 function doGet() {
   return ContentService
     .createTextOutput('Google Apps Script ativo. Use o site para enviar informações por e-mail.')
@@ -7,20 +9,15 @@ function doGet() {
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
-    const recipient = Session.getEffectiveUser().getEmail();
-    if (!recipient) {
-      throw new Error('Não foi possível identificar o e-mail da conta que executa o Apps Script.');
-    }
-
     const details = JSON.stringify(payload, null, 2);
     MailApp.sendEmail({
-      to: recipient,
+      to: RECIPIENT_EMAIL,
       subject: `Novo acesso ao site - ${payload.timestamp || new Date().toISOString()}`,
       body: `Foi registado um novo acesso ao site.\n\n${details}`
     });
 
     return ContentService
-      .createTextOutput(JSON.stringify({ ok: true, recipient }))
+      .createTextOutput(JSON.stringify({ ok: true, recipient: RECIPIENT_EMAIL }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
     return ContentService
